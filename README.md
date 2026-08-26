@@ -83,9 +83,7 @@ npm run dev
 
 The app will be available at `http://localhost:5173`
 
-## Screenshots
 
-*(Screenshots yahan add karenge next step mein)*
 
 
 
