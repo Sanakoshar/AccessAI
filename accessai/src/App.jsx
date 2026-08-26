@@ -1,191 +1,224 @@
-import { useState } from 'react';
-//import axe from 'axe-core';
+import { useState } from "react";
+import "./App.css";
 
 function App() {
-  const [url, setUrl] = useState('');
+  const [url, setUrl] = useState("");
   const [isScanning, setIsScanning] = useState(false);
   const [violations, setViolations] = useState([]);
   const [hasScanned, setHasScanned] = useState(false);
-   
+  const [error, setError] = useState("");
+
   async function handleScan() {
-  console.log('Scanning URL:', url);
+    if (!url.trim()) {
+      setError("Please enter a website URL.");
+      return;
+    }
 
-  setIsScanning(true);
-  setHasScanned(false);
-  setViolations([]);
+    setIsScanning(true);
+    setHasScanned(false);
+    setViolations([]);
+    setError("");
 
-  try {
-    const response = await fetch('http://localhost:3001/scan', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ url: url }),
-    });
+    try {
+      const response = await fetch("http://localhost:3001/scan", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          url: url.trim(),
+        }),
+      });
 
-    const data = await response.json();
+      if (!response.ok) {
+        throw new Error(`Server error: ${response.status}`);
+      }
 
-    console.log('Violations found:', data.violations);
-    setViolations(data.violations);
-  } catch (error) {
-    console.error('Error scanning:', error);
-    alert('Something went wrong. Check console for details.');
-  } finally {
-    setIsScanning(false);
-    setHasScanned(true);
+      const data = await response.json();
+
+      setViolations(
+        Array.isArray(data.violations) ? data.violations : []
+      );
+
+      setHasScanned(true);
+    } catch (error) {
+      console.error("Error scanning:", error);
+      setError(
+        "Unable to scan the website. Make sure your backend is running on port 3001."
+      );
+      setHasScanned(false);
+    } finally {
+      setIsScanning(false);
+    }
   }
-}
-  
+
   function getImpactColor(impact) {
     switch (impact) {
-      case 'critical':
-        return '#dc2626';
+      case "critical":
+        return "#dc2626";
 
-      case 'serious':
-        return '#ea580c';
+      case "serious":
+        return "#ea580c";
 
-      case 'moderate':
-        return '#ca8a04';
+      case "moderate":
+        return "#ca8a04";
 
-      case 'minor':
-        return '#65a30d';
+      case "minor":
+        return "#65a30d";
 
       default:
-        return '#6b7280';
+        return "#6b7280";
     }
   }
 
   return (
-    <div
-      style={{
-        maxWidth: '700px',
-        margin: '0 auto',
-        padding: '20px',
-        fontFamily: 'sans-serif',
-      }}
-    >
-      <h1>AccessAI</h1>
+    <div className="app-container">
 
-      <p>Web Accessibility Auditor</p>
+      {/* Header */}
+      <div className="app-header">
+        <h1 className="app-logo">AccessAI</h1>
 
-      <input
-        type="text"
-        placeholder="Enter website URL"
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        style={{
-          padding: '8px',
-          width: '300px',
-          marginRight: '10px',
-        }}
-      />
+        <p className="app-tagline">
+          Web Accessibility Auditor — scan any website for WCAG issues
+        </p>
+      </div>
 
-      <button
-        onClick={handleScan}
-        style={{
-          padding: '8px 16px',
-          cursor: 'pointer',
-        }}
-      >
-        Scan
-      </button>
+      {/* Search */}
+      <div className="search-card">
 
-      {/* Scanning message */}
-      {isScanning && (
-        <p>Scanning your website... please wait</p>
+        <input
+          type="text"
+          className="url-input"
+          placeholder="Enter website URL (e.g. https://example.com)"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handleScan();
+            }
+          }}
+        />
+
+        <button
+          className="scan-button"
+          onClick={handleScan}
+          disabled={isScanning}
+        >
+          {isScanning ? "Scanning..." : "Scan"}
+        </button>
+
+      </div>
+
+      {/* Error */}
+      {error && (
+        <div className="error-box">
+          ⚠️ {error}
+        </div>
       )}
 
-      {/* Results Section */}
+      {/* Loading */}
+      {isScanning && (
+        <div className="loading-box">
+          <div className="spinner"></div>
+
+          <span>
+            Scanning your website, please wait...
+          </span>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!hasScanned && !isScanning && !error && (
+        <div className="empty-state">
+          <div className="empty-state-icon">
+            🔍
+          </div>
+
+          <p>
+            Enter a URL above to check its accessibility
+          </p>
+        </div>
+      )}
+
+      {/* Results */}
       {hasScanned && !isScanning && (
-        <div style={{ marginTop: '30px' }}>
-          <h2>
+        <div className="results-section">
+
+          <h2 className="results-heading">
             {violations.length === 0
-              ? '✅ No accessibility issues found!'
+              ? "✅ No accessibility issues found!"
               : `Found ${violations.length} issue${
-                  violations.length > 1 ? 's' : ''
+                  violations.length > 1 ? "s" : ""
                 }`}
           </h2>
 
-          {violations.map((violation) => (
+          {violations.map((violation, index) => (
+
             <div
-              key={violation.id}
+              key={violation.id || index}
+              className="violation-card"
               style={{
-                border: '1px solid #e5e7eb',
-                borderLeft: `5px solid ${getImpactColor(
+                borderLeftColor: getImpactColor(
                   violation.impact
-                )}`,
-                borderRadius: '8px',
-                padding: '15px',
-                marginBottom: '15px',
-                backgroundColor: '#f9fafb',
+                ),
               }}
             >
-              {/* Heading + Severity */}
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: '10px',
-                }}
-              >
-                <h3 style={{ margin: 0 }}>
-                  {violation.help}
+
+              {/* Violation Header */}
+              <div className="violation-header">
+
+                <h3 className="violation-title">
+                  {violation.help || "Accessibility issue"}
                 </h3>
 
                 <span
+                  className="severity-badge"
                   style={{
                     backgroundColor: getImpactColor(
                       violation.impact
                     ),
-                    color: 'white',
-                    padding: '2px 10px',
-                    borderRadius: '12px',
-                    fontSize: '12px',
-                    textTransform: 'uppercase',
-                    fontWeight: 'bold',
                   }}
                 >
-                  {violation.impact || 'unknown'}
+                  {violation.impact || "unknown"}
                 </span>
+
               </div>
 
               {/* Description */}
-              <p
-                style={{
-                  color: '#374151',
-                  marginTop: '8px',
-                }}
-              >
-                {violation.description}
+              <p className="violation-description">
+                {violation.description ||
+                  "No description available."}
               </p>
 
-              {/* Affected elements */}
-              <p
-                style={{
-                  fontSize: '14px',
-                  color: '#6b7280',
-                }}
-              >
-                Affected elements:{' '}
-                <strong>{violation.nodes.length}</strong>
+              {/* Affected Elements */}
+              <p className="violation-meta">
+                Affected elements:{" "}
+                <strong>
+                  {Array.isArray(violation.nodes)
+                    ? violation.nodes.length
+                    : 0}
+                </strong>
               </p>
 
-              {/* Learn More Link */}
-              <a
-                href={violation.helpUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  fontSize: '14px',
-                }}
-              >
-                Learn how to fix this →
-              </a>
+              {/* Fix Link */}
+              {violation.helpUrl && (
+                <a
+                  href={violation.helpUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="violation-link"
+                >
+                  Learn how to fix this →
+                </a>
+              )}
+
             </div>
+
           ))}
+
         </div>
       )}
+
     </div>
   );
 }
