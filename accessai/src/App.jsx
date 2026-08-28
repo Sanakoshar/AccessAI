@@ -1,118 +1,94 @@
-import { useState } from "react";
-import "./App.css";
+import { useState } from 'react';
+import './App.css';
 
 function App() {
-  const [url, setUrl] = useState("");
+  const [url, setUrl] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [violations, setViolations] = useState([]);
   const [hasScanned, setHasScanned] = useState(false);
-  const [error, setError] = useState("");
 
   async function handleScan() {
-    if (!url.trim()) {
-      setError("Please enter a website URL.");
-      return;
-    }
+    if (!url) return;
 
     setIsScanning(true);
     setHasScanned(false);
     setViolations([]);
-    setError("");
 
     try {
-      const response = await fetch("http://localhost:3001/scan", {
-        method: "POST",
+      const response = await fetch('http://localhost:3001/scan', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          url: url.trim(),
-        }),
+        body: JSON.stringify({ url: url }),
       });
 
-      if (!response.ok) {
-        throw new Error(`Server error: ${response.status}`);
-      }
-
       const data = await response.json();
-
-      setViolations(
-        Array.isArray(data.violations) ? data.violations : []
-      );
-
-      setHasScanned(true);
+      setViolations(data.violations);
     } catch (error) {
-      console.error("Error scanning:", error);
-      setError(
-        "Unable to scan the website. Make sure your backend is running on port 3001."
-      );
-      setHasScanned(false);
+      console.error('Error scanning:', error);
+      alert('Something went wrong. Check console for details.');
     } finally {
       setIsScanning(false);
-    }
-  }
-
-  function getImpactColor(impact) {
-    switch (impact) {
-      case "critical":
-        return "#dc2626";
-
-      case "serious":
-        return "#ea580c";
-
-      case "moderate":
-        return "#ca8a04";
-
-      case "minor":
-        return "#65a30d";
-
-      default:
-        return "#6b7280";
+      setHasScanned(true);
     }
   }
 
   return (
     <div className="app-container">
-
-      {/* Header */}
-      <div className="app-header">
+      {/* Hero Section */}
+      <div className="hero">
+        <span className="hero-badge">↻  Free & Instant WCAG Scanning</span>
         <h1 className="app-logo">AccessAI</h1>
-
         <p className="app-tagline">
-          Web Accessibility Auditor — scan any website for WCAG issues
+          Scan any website in seconds and uncover accessibility issues 
+          with clear, actionable fixes for every problem found...
         </p>
+
+        <div className="search-card">
+          <input
+            type="text"
+            className="url-input"
+            placeholder="Enter website URL (e.g. https://example.com)"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleScan()}
+          />
+          <button
+            className="scan-button"
+            onClick={handleScan}
+            disabled={isScanning}
+          >
+            {isScanning ? 'Scanning...' : 'Scan Now'}
+          </button>
+        </div>
       </div>
 
-      {/* Search */}
-      <div className="search-card">
-
-        <input
-          type="text"
-          className="url-input"
-          placeholder="Enter website URL (e.g. https://example.com)"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              handleScan();
-            }
-          }}
-        />
-
-        <button
-          className="scan-button"
-          onClick={handleScan}
-          disabled={isScanning}
-        >
-          {isScanning ? "Scanning..." : "Scan"}
-        </button>
-
-      </div>
-
-      {/* Error */}
-      {error && (
-        <div className="error-box">
-          ⚠️ {error}
+      {/* Features Section - only show before scanning */}
+      {!hasScanned && !isScanning && (
+        <div className="features-section">
+          <div className="feature-card">
+            <div className="feature-icon">↻</div>
+            <h3 className="feature-title">Instant Scanning</h3>
+            <p className="feature-desc">
+              Get accessibility results in seconds using industry-standard
+              axe-core rules.
+            </p>
+          </div>
+          <div className="feature-card">
+            <div className="feature-icon">☞</div>
+            <h3 className="feature-title">Severity Insights</h3>
+            <p className="feature-desc">
+              Issues are ranked by severity so you know what to fix first.
+            </p>
+          </div>
+          <div className="feature-card">
+            <div className="feature-icon">✄</div>
+            <h3 className="feature-title">Actionable Fixes</h3>
+            <p className="feature-desc">
+              Every issue links directly to a guide on how to resolve it.
+            </p>
+          </div>
         </div>
       )}
 
@@ -120,105 +96,60 @@ function App() {
       {isScanning && (
         <div className="loading-box">
           <div className="spinner"></div>
-
-          <span>
-            Scanning your website, please wait...
-          </span>
+          <span>Scanning your website, please wait...</span>
         </div>
       )}
 
       {/* Empty State */}
-      {!hasScanned && !isScanning && !error && (
+      {!hasScanned && !isScanning && (
         <div className="empty-state">
-          <div className="empty-state-icon">
-            🔍
-          </div>
-
-          <p>
-            Enter a URL above to check its accessibility
-          </p>
+          <div className="empty-state-icon">⛶ ⌕</div>
+          <p>Enter a URL above to check its accessibility</p>
         </div>
       )}
 
       {/* Results */}
       {hasScanned && !isScanning && (
         <div className="results-section">
-
           <h2 className="results-heading">
             {violations.length === 0
-              ? "✅ No accessibility issues found!"
-              : `Found ${violations.length} issue${
-                  violations.length > 1 ? "s" : ""
-                }`}
+              ? '✅ No accessibility issues found!'
+              : `Found ${violations.length} issue${violations.length > 1 ? 's' : ''}`}
           </h2>
 
-          {violations.map((violation, index) => (
-
-            <div
-              key={violation.id || index}
-              className="violation-card"
-              style={{
-                borderLeftColor: getImpactColor(
-                  violation.impact
-                ),
-              }}
-            >
-
-              {/* Violation Header */}
+          {violations.map((violation) => (
+            <div key={violation.id} className="violation-card">
               <div className="violation-header">
-
-                <h3 className="violation-title">
-                  {violation.help || "Accessibility issue"}
-                </h3>
-
-                <span
-                  className="severity-badge"
-                  style={{
-                    backgroundColor: getImpactColor(
-                      violation.impact
-                    ),
-                  }}
-                >
-                  {violation.impact || "unknown"}
+                <h3 className="violation-title">{violation.help}</h3>
+                <span className="severity-badge">
+                  {violation.impact || 'unknown'}
                 </span>
-
               </div>
 
-              {/* Description */}
-              <p className="violation-description">
-                {violation.description ||
-                  "No description available."}
-              </p>
+              <p className="violation-description">{violation.description}</p>
 
-              {/* Affected Elements */}
               <p className="violation-meta">
-                Affected elements:{" "}
-                <strong>
-                  {Array.isArray(violation.nodes)
-                    ? violation.nodes.length
-                    : 0}
-                </strong>
+                Affected elements: <strong>{violation.nodes.length}</strong>
               </p>
 
-              {/* Fix Link */}
-              {violation.helpUrl && (
-                <a
-                  href={violation.helpUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="violation-link"
-                >
-                  Learn how to fix this →
-                </a>
-              )}
-
+              {/* ✅ Correct anchor tag */}
+              <a
+                href={violation.helpUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="violation-link"
+              >
+                Learn how to fix this →
+              </a>
             </div>
-
           ))}
-
         </div>
       )}
 
+      {/* Footer */}
+      <footer className="app-footer">
+        Built by <a href="https://github.com/Sanakoshar" target="_blank" rel="noopener noreferrer">Sana Koshar</a> · Powered by React, Node.js & axe-core
+      </footer>
     </div>
   );
 }
