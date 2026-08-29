@@ -13,7 +13,6 @@ app.get('/', (req, res) => {
   res.send('AccessAI Backend is running!');
 });
 
-// Naya scan route
 app.post('/scan', async (req, res) => {
   const { url } = req.body;
 
@@ -24,21 +23,19 @@ app.post('/scan', async (req, res) => {
   console.log('Scanning:', url);
 
   try {
-    // Step 1: Invisible browser kholo
-    const browser = await puppeteer.launch();
+    const browser = await puppeteer.launch({
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
     const page = await browser.newPage();
 
-    // Step 2: Target website load karo
-    await page.goto(url, { waitUntil: 'networkidle2' });
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
 
-    // Step 3: axe-core ka code us page mein inject karo
     const axeSource = fs.readFileSync(
       require.resolve('axe-core/axe.min.js'),
       'utf8'
     );
     await page.evaluate(axeSource);
 
-    // Step 4: axe scan chalao us page ke andar
     const results = await page.evaluate(() => {
       return new Promise((resolve) => {
         axe.run(document, {}, (err, results) => {
@@ -47,10 +44,8 @@ app.post('/scan', async (req, res) => {
       });
     });
 
-    // Step 5: Browser band karo (memory bachane ke liye)
     await browser.close();
 
-    // Step 6: Result frontend ko bhejo
     res.json({ violations: results.violations });
   } catch (error) {
     console.error('Scan error:', error);
