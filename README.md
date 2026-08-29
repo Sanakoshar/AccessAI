@@ -96,6 +96,8 @@ The app will be available at `http://localhost:5173`
 - AI-powered fix suggestions using an LLM
 - PDF report export for scan results
 
+- 🔗 **Live Demo:** [https://access-ai-gilt.vercel.app](https://access-ai-gilt.vercel.app)
+
 ## Author
 
 **Sana Koshar**
