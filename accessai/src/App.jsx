@@ -15,7 +15,7 @@ function App() {
     setViolations([]);
 
     try {
-      const response = await fetch('http://localhost:3001/scan', {
+      const response = await fetch('https://accessai-backend-0u1j.onrender.com/scan', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
