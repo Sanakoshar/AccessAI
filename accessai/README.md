@@ -1,4 +1,3 @@
-
 # AccessAI — Web Accessibility Auditor
 
 A full-stack web application that scans any webpage for WCAG (Web Content Accessibility Guidelines) violations and provides actionable, code-level fix suggestions — making accessibility testing more accessible to individual developers and small teams.
@@ -39,7 +38,6 @@ Most websites fail basic WCAG compliance, and accessibility testing tools are of
 
 ## Project Structure
 
-
 AccessAI/
 ├── accessai/ # React frontend
 └── accessai-backend/ # Node/Express backend with Puppeteer
@@ -63,8 +61,6 @@ npm install
 
 3. Install backend dependencies
 
-   
-
 cd ../accessai-backend
 npm install
 
@@ -84,17 +80,15 @@ npm run dev
 
 The app will be available at  http://localhost:5173/
 
-
-
-
 ## Future Improvements
-
-
 
 - Deploy the application for public access
 - Add scan history and comparison between scans
 - AI-powered fix suggestions using an LLM
 - PDF report export for scan results
+
+
+🔗 **Live Demo:** [https://access-ai-gilt.vercel.app](https://access-ai-gilt.vercel.app)
 
 ## Author
 
