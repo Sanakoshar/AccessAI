@@ -20,51 +20,50 @@ app.post("/scan", async (req, res) => {
     return res.status(400).json({ error: "URL is required", violations: [] });
   }
 
-  console.log("Scanning:", url);
   let browser;
-
   try {
+    console.log("Starting scan for:", url);
+    
     browser = await puppeteer.launch({
-      headless: true,
+      headless: "new",
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
         "--disable-dev-shm-usage",
         "--disable-gpu",
+        "--single-process", // Highly recommended for Render's limited RAM
         "--no-zygote",
       ],
     });
 
     const page = await browser.newPage();
-    await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+    
+    // Set a reasonable timeout
+    await page.goto(url, { waitUntil: "networkidle2", timeout: 45000 });
 
-    const axeSource = fs.readFileSync(
-      require.resolve("axe-core/axe.min.js"),
-      "utf8"
-    );
+    // Inject axe-core
+    const axePath = require.resolve("axe-core/axe.min.js");
+    const axeSource = fs.readFileSync(axePath, "utf8");
     await page.evaluate(axeSource);
 
-    const results = await page.evaluate(() => {
-      return new Promise((resolve, reject) => {
-        axe.run(document, {}, (err, results) => {
-          if (err) reject(err);
-          else resolve(results);
-        });
-      });
+    // Run accessibility tests
+    const results = await page.evaluate(async () => {
+      return await window.axe.run();
     });
 
-    console.log("Scan completed. Violations:", results.violations.length);
-    return res.json({ violations: results.violations || [] });
+    console.log(`Scan finished. Found ${results.violations.length} violations.`);
+    res.json({ violations: results.violations });
+
   } catch (error) {
-    console.error("Scan error:", error);
-    return res.status(500).json({ error: error.message || "Failed to scan website", violations: [] });
+    console.error("Puppeteer Error:", error.message);
+    res.status(500).json({ 
+      error: "Failed to scan website. Make sure the URL is correct and public.", 
+      violations: [] 
+    });
   } finally {
     if (browser) {
-      try {
-        await browser.close();
-      } catch (closeError) {
-        console.error("Browser close error:", closeError);
-      }
+      await browser.close();
+      console.log("Browser closed.");
     }
   }
 });
