@@ -44,8 +44,8 @@ app.post("/scan", async (req, res) => {
 
     // 1. Page load hone ka wait karein (60s timeout)
     // networkidle2 ensures most scripts/styles are loaded
-    await page.goto(url, { waitUntil: "networkidle2", timeout: 60000 });
-
+   await page.goto(url, { waitUntil: "domcontentloaded", timeout: 60000 });
+await new Promise(resolve => setTimeout(resolve, 2000));
     // 2. Axe-core ko direct path se inject karein
     const axePath = require.resolve("axe-core/axe.min.js");
     await page.addScriptTag({ path: axePath });
