@@ -1,18 +1,21 @@
 const express = require("express");
 const cors = require("cors");
 const puppeteer = require("puppeteer");
-const fs = require("fs");
+const path = require("path");
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// Middlewares
 app.use(cors());
 app.use(express.json());
 
+// Health Check Route
 app.get("/", (req, res) => {
-  res.send("AccessAI Backend is running!");
+  res.send("AccessAI Backend is running perfectly!");
 });
 
+// Scan Route
 app.post("/scan", async (req, res) => {
   const { url } = req.body;
 
@@ -20,10 +23,11 @@ app.post("/scan", async (req, res) => {
     return res.status(400).json({ error: "URL is required", violations: [] });
   }
 
+  console.log("Processing scan request for:", url);
   let browser;
+
   try {
-    console.log("Starting scan for:", url);
-    
+    // Puppeteer launch with memory optimizations for Render
     browser = await puppeteer.launch({
       headless: "new",
       args: [
@@ -31,43 +35,59 @@ app.post("/scan", async (req, res) => {
         "--disable-setuid-sandbox",
         "--disable-dev-shm-usage",
         "--disable-gpu",
-        "--single-process", // Highly recommended for Render's limited RAM
         "--no-zygote",
+        "--single-process", // Vital for Render's limited RAM
       ],
     });
 
     const page = await browser.newPage();
-    
-    // Set a reasonable timeout
-    await page.goto(url, { waitUntil: "networkidle2", timeout: 45000 });
 
-    // Inject axe-core
+    // 1. Page load hone ka wait karein (60s timeout)
+    // networkidle2 ensures most scripts/styles are loaded
+    await page.goto(url, { waitUntil: "networkidle2", timeout: 60000 });
+
+    // 2. Axe-core ko direct path se inject karein
     const axePath = require.resolve("axe-core/axe.min.js");
-    const axeSource = fs.readFileSync(axePath, "utf8");
-    await page.evaluate(axeSource);
+    await page.addScriptTag({ path: axePath });
 
-    // Run accessibility tests
+    // 3. Accessibility scan run karein
     const results = await page.evaluate(async () => {
+      // Ensure axe is defined
+      if (!window.axe) {
+        throw new Error("Axe-core failed to load on the target page.");
+      }
+      // Run the scan
       return await window.axe.run();
     });
 
-    console.log(`Scan finished. Found ${results.violations.length} violations.`);
-    res.json({ violations: results.violations });
+    console.log(`Scan finished for ${url}. Found ${results.violations.length} issues.`);
+
+    // 4. Result bhejein
+    return res.json({ 
+      violations: results.violations || [],
+      timestamp: new Date().toISOString()
+    });
 
   } catch (error) {
-    console.error("Puppeteer Error:", error.message);
-    res.status(500).json({ 
-      error: "Failed to scan website. Make sure the URL is correct and public.", 
+    console.error("SCAN ERROR:", error.message);
+    return res.status(500).json({ 
+      error: "Scanning failed: " + error.message, 
       violations: [] 
     });
   } finally {
+    // Sabse zaruri: Browser ko hamesha band karein taaki RAM khali ho jaye
     if (browser) {
-      await browser.close();
-      console.log("Browser closed.");
+      try {
+        await browser.close();
+        console.log("Browser closed successfully.");
+      } catch (err) {
+        console.error("Error closing browser:", err);
+      }
     }
   }
 });
 
+// Server Start
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`AccessAI Server is live on port ${PORT}`);
 });
